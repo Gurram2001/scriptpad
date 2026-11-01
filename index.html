@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1d5c63">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scriptpad">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Scriptpad – Screenplay Writer</title>
@@ -79,6 +82,7 @@ main{flex:1;overflow:auto}
  <div class="btns">
   <button id="bn">New</button>
   <button id="bc">Fountain</button>
+  <button id="bi">Install</button>
   <button id="bt">Theme</button>
   <button id="bp">Print</button>
   <button id="bd">Delete</button>
@@ -114,7 +118,7 @@ const cur=()=>S.scripts.find(s=>s.id===S.cur)||S.scripts[0];
 function say(m){$('#sv').textContent=m}
 function save(){say('Saving…');clearTimeout(timer);timer=setTimeout(()=>{try{localStorage.setItem('scriptpad1',JSON.stringify(S));say('Saved')}catch(e){say('Not saved – storage blocked')}},300)}
 function fit(t){t.style.height='auto';t.style.height=t.scrollHeight+'px'}
-function setT(b,t,type){b.t=type;t.className=type;t.placeholder=PH[type];fit(t);tbHi()}
+function setT(b,t,type){b.t=type;t.className=type;t.placeholder=PH[type];fit(t);tbHi();refreshContd()}
 function tbHi(){const b=cur().blocks[act];document.querySelectorAll('#tb button').forEach(x=>x.classList.toggle('on',!!b&&x.dataset.t===b.t));sug()}
 function focusAt(i,pos){const t=$('#ed').children[i];if(!t)return;t.focus();const p=pos==='end'?t.value.length:0;t.setSelectionRange(p,p)}
 function bind(t,b){
@@ -125,6 +129,7 @@ function bind(t,b){
   fit(t);save();stats();sug();if(b.t==='scene')scenes();
  };
  t.onfocus=()=>{act=idx();tbHi()};
+ t.onblur=()=>setTimeout(refreshContd,0);
  t.onkeydown=e=>{
   const i=idx(),bl=cur().blocks,k=e.key;
   if(k==='Enter'&&!e.shiftKey&&!e.isComposing){
@@ -133,7 +138,7 @@ function bind(t,b){
    const p=t.selectionStart,rest=b.x.slice(p);
    b.x=b.x.slice(0,p);t.value=b.x;
    bl.splice(i+1,0,{t:rest?b.t:NEXT[b.t],x:rest});
-   render();focusAt(i+1,'start');save();return;
+   render();focusAt(i+1,'start');refreshContd();save();return;
   }
   if(k==='Tab'){e.preventDefault();setT(b,t,T[(T.indexOf(b.t)+(e.shiftKey?5:1))%6]);save();return}
   if(k==='Backspace'&&!b.x&&i>0){e.preventDefault();bl.splice(i,1);render();focusAt(i-1,'end');save();return}
@@ -150,7 +155,7 @@ function render(){
   ed.appendChild(t);bind(t,b);
  });
  ed.querySelectorAll('textarea').forEach(fit);
- head();stats();tbHi();scenes();
+ head();stats();tbHi();scenes();refreshContd();
 }
 function head(){
  const sel=$('#sel');sel.innerHTML='';
@@ -263,6 +268,40 @@ $('#mc').onclick=()=>copyText($('#mt').value);
 $('#mi').onclick=()=>{const f=parseF($('#mt').value);S.scripts.push(f);S.cur=f.id;act=0;$('#md').hidden=true;render();save()};
 window.addEventListener('keydown',e=>{if(e.key==='Escape')$('#md').hidden=true});
 const nameOf=x=>x.replace(/(\s*\([^)]*\))+\s*$/,'').trim().toUpperCase();
+function refreshContd(){
+ const bl=cur().blocks,tas=$('#ed').children;let last=null,ch=false;
+ bl.forEach((b,i)=>{
+  if(b.t==='scene')last=null;
+  if(b.t!=='character'||!b.x.trim())return;
+  const base=b.x.replace(/\s*\(CONT['\u2019]D\)\s*$/i,'').trim(),n=nameOf(base);
+  const x=n===last?base+" (CONT'D)":base;
+  if(x!==b.x.trim()&&document.activeElement!==tas[i]){b.x=x;if(tas[i]){tas[i].value=x;fit(tas[i])}ch=true}
+  last=n;
+ });
+ if(ch){save();scenes()}
+}
+let dip=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e});
+window.addEventListener('appinstalled',()=>{dip=null;say('Installed')});
+async function installHelp(){
+ const L=[],standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+ L.push(standalone?'Already running as an installed app.':'Running in a browser tab.');
+ L.push('Secure (https) page: '+(isSecureContext?'yes':'NO - open the https:// link'));
+ let mf='not found in page';
+ try{const l=document.querySelector('link[rel=manifest]');if(l){const r=await fetch(l.href);mf=r.ok?'loaded (HTTP '+r.status+')':'FAILED (HTTP '+r.status+') - upload manifest.webmanifest and the icon files'}}catch(e){mf='failed to load'}
+ L.push('Manifest: '+mf);
+ let sw='not supported here';
+ try{if('serviceWorker' in navigator){const r=await navigator.serviceWorker.getRegistration();sw=r?(r.active?'active':'installing - reload once'):'not registered - upload sw.js'}}catch(e){sw='error'}
+ L.push('Offline worker: '+sw);
+ L.push('Browser install prompt ready: '+(dip?'yes - tap Install again':'no'));
+ L.push('');
+ L.push(/iphone|ipad|ipod/i.test(navigator.userAgent)?'iPhone/iPad: open this page in Safari, tap Share, then Add to Home Screen.':'Android Chrome: menu (three dots), then Install app or Add to Home screen. Desktop Chrome/Edge: install icon in the address bar. In-app browsers and private tabs do not offer install: open the link in Chrome or Safari.');
+ $('#mt').value=L.join('\n');$('#md').hidden=false;
+}
+$('#bi').onclick=async()=>{
+ if(dip){const p=dip;dip=null;p.prompt();try{await p.userChoice}catch(e){}return}
+ installHelp();
+};
 function stamp(){try{localStorage.setItem('scriptpad-bk',Date.now())}catch(e){}}
 function withContd(){
  const out=[];let last=null;
