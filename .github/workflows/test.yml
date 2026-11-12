@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: '3.12' }
       - run: pip install playwright==1.56.0 pypdf==5.9.0 && playwright install --with-deps chromium
       - run: |
