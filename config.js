@@ -1,0 +1,1 @@
+window.SCRIPTPAD={supabaseUrl:'',supabaseKey:''};

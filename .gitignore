@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+node_modules/
+scriptpad-backup*.json
+*.fountain
+.DS_Store

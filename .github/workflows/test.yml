@@ -1,0 +1,18 @@
+name: tests
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install playwright==1.56.0 pypdf==5.9.0 && playwright install --with-deps chromium
+      - run: |
+          python -m http.server 8765 >/dev/null 2>&1 &
+          sleep 2
+          python tests/suite.py
