@@ -6,6 +6,13 @@ Files: `index.html` (page), `styles.css`, `app.js`, `config.js` (sync settings),
 GitHub Pages / Netlify / Cloudflare Pages: publish this folder as-is (build command empty, publish directory `.`).
 Updates reach installed copies automatically: the service worker fetches the network first and only falls back to its cache offline. No version number to bump.
 
+## Writing helpers
+Character cues autocomplete: focus an empty cue to see the cast (likely next speaker first), type a few letters to narrow, near-misspellings are matched, names introduced in CAPS in action lines are offered too. Tab or tap completes; arrows + Enter pick; Esc closes; plain Enter keeps whatever you typed.
+Scene headings autocomplete in steps: INT./EXT., then a location you already used (typos matched), then time of day (your past times for that location first).
+
+## Export & import
+menu > Export / import: Fountain (default view), Final Draft (.fdx, with title page), PDF (screenplay format), Backup all (JSON). Import accepts Fountain text, .fdx content and backups. (CONT'D) is added automatically in the editor, Fountain and PDF; the .fdx leaves it to Final Draft. FDX import rejects files with DOCTYPE/entities and anything over 2 MB. Final Draft itself was not available for testing: files are validated as well-formed XML and round-trip tested; Highland and Fade In also open .fdx.
+
 ## Cloud sync (optional)
 1. supabase.com > New project. 2. SQL Editor > run `supabase.sql`.
 3. Project Settings > API: put the Project URL and `anon` key in `config.js` (the anon key is public by design; never commit a `service_role` key).
@@ -15,7 +22,7 @@ Notes: last edit wins per script, so use "Save version" before big rewrites. Fre
 Use a separate Supabase project for branch previews, and do not merge a preview's `config.js` into `main`.
 The Content-Security-Policy (meta tag in `index.html`, also in `_headers`) allows `*.supabase.co`; edit both if you use a custom Supabase domain.
 
-## Tests (92 checks, real browser)
+## Tests (133 checks, real browser)
 `pip install playwright pypdf && playwright install chromium`
 `python -m http.server 8765 &` then `python tests/suite.py`. GitHub Actions runs it on every push.
 
